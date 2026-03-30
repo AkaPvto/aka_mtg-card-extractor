@@ -1,5 +1,7 @@
-extraction/**
-build/**
-.cache/**
+# Directories
+build
+extraction
+.cache
 
+# Files
 mtg_extractor
