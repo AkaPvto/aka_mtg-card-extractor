@@ -1,0 +1,15 @@
+{
+  "data": {
+    "name": "Mixed Set",
+    "releaseDate": "2025-01-01",
+    "type": "expansion",
+    "totalSetSize": 5,
+    "cards": [
+      { "name": "Normal Card",  "type": "Instant" },
+      { "name": "Reprint Card", "type": "Instant",  "isReprint": true },
+      { "name": "Promo Card",   "type": "Instant",  "isPromo": true },
+      { "name": "Normal Card",  "type": "Instant" },
+      { "name": "Another Card", "type": "Sorcery" }
+    ]
+  }
+}
