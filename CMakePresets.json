@@ -1,0 +1,49 @@
+{
+  "version": 3,
+  "configurePresets": [
+    {
+      "name": "debug-clang",
+      "displayName": "Debug (Clang)",
+      "binaryDir": "${sourceDir}/build/debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_CXX_COMPILER": "clang++"
+      }
+    },
+    {
+      "name": "devel-clang",
+      "displayName": "Devel (Clang)",
+      "binaryDir": "${sourceDir}/build/devel",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_CXX_COMPILER": "clang++"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "debug-clang",
+      "configurePreset": "debug-clang"
+    },
+    {
+      "name": "devel-clang",
+      "configurePreset": "devel-clang"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "debug-clang",
+      "configurePreset": "debug-clang",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "devel-clang",
+      "configurePreset": "devel-clang",
+      "output": {
+        "outputOnFailure": true
+      }
+    }
+  ]
+}

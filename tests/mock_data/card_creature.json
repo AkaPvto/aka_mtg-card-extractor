@@ -1,0 +1,8 @@
+{
+  "name": "Alpha Creature",
+  "manaCost": "{1}{G}",
+  "type": "Creature — Beast",
+  "power": "2",
+  "toughness": "2",
+  "text": "Trample"
+}

@@ -1,0 +1,7 @@
+{
+  "name": "Gamma Planeswalker",
+  "manaCost": "{3}{U}{U}",
+  "type": "Legendary Planeswalker — Gamma",
+  "loyalty": "5",
+  "text": "+1: Draw a card."
+}

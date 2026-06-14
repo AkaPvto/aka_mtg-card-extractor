@@ -1,5 +1,6 @@
 #include "set_exporter.hpp"
 #include "../third_party/json.hpp"
+#include "card_utils.hpp"
 #include "http_client.hpp"
 
 #include <atomic>
@@ -7,7 +8,6 @@
 #include <fstream>
 #include <iostream>
 #include <mutex>
-#include <set>
 #include <string>
 #include <thread>
 #include <vector>
@@ -34,81 +34,26 @@ auto exportSet(const std::string &setCode, const std::string &outputDir,
       return;
     }
 
-    std::string outPath = outputDir + "/" + setCode + "_cards.md";
-    if (outputDir.empty() || outputDir == ".") {
-      outPath = setCode + "_cards.md";
-    }
-
+    std::string outPath = buildOutPath(outputDir, setCode);
     std::ofstream outFile(outPath);
     if (!outFile.is_open()) {
       std::cerr << "Failed to open " << outPath << " for writing.\n";
       return;
     }
 
-    std::string setName = jsonData["data"].value("name", setCode);
-    std::string releaseDate =
-        jsonData["data"].value("releaseDate", "Unknown Release Date");
-    std::string setType = jsonData["data"].value("type", "Unknown Type");
-    int totalSetSize = jsonData["data"].value("totalSetSize", 0);
-
-    outFile << "# " << setName << " (" << setCode << ")\n\n";
-    outFile << "**Release Date**: " << releaseDate << "\n";
-    outFile << "**Set Type**: " << setType << "\n";
-    outFile << "**Size**: " << totalSetSize << " cards\n\n";
-    outFile << "---\n\n";
-
-    std::set<std::string> seenCards;
-    int exportedCount = 0;
-    int skippedCount = 0;
-
-    for (const auto &card : jsonData["data"]["cards"]) {
-      if (card.value("isReprint", false) ||
-          card.value("isAlternative", false) || card.value("isPromo", false)) {
-        skippedCount++;
-        continue;
-      }
-
-      std::string name = card.value("name", "Unknown");
-      if (seenCards.count(name)) {
-        skippedCount++;
-        continue;
-      }
-      seenCards.insert(name);
-
-      outFile << "## " << name << "\n";
-      if (card.contains("manaCost"))
-        outFile << "**Mana Cost**: " << card["manaCost"].get<std::string>()
-                << "\n";
-      if (card.contains("type"))
-        outFile << "**Type**: " << card["type"].get<std::string>() << "\n";
-      if (card.contains("power") && card.contains("toughness"))
-        outFile << "**Power/Toughness**: " << card["power"].get<std::string>()
-                << "/" << card["toughness"].get<std::string>() << "\n";
-      if (card.contains("loyalty"))
-        outFile << "**Loyalty**: " << card["loyalty"].get<std::string>()
-                << "\n";
-      if (card.contains("text")) {
-        std::string text = card["text"].get<std::string>();
-        // Render as a markdown blockquote: prefix each line with "> ".
-        outFile << "**Text**:\n> ";
-        for (char c : text)
-          outFile << (c == '\n' ? "\n> " : std::string(1, c));
-        outFile << "\n";
-      }
-      outFile << "\n";
-      exportedCount++;
-    }
-
+    auto result = serializeSetToMarkdown(jsonData["data"], setCode);
+    outFile << result.content;
     outFile.close();
 
-    if (pruneEmpty && exportedCount == 0) {
+    if (pruneEmpty && result.exportedCount == 0) {
       std::filesystem::remove(outPath);
       std::lock_guard<std::mutex> lock(cout_mutex);
       std::cout << "Pruned empty set " << setCode << " (0 unique cards)\n";
     } else {
       std::lock_guard<std::mutex> lock(cout_mutex);
-      std::cout << "Successfully exported " << exportedCount << " cards to "
-                << outPath << " (Skipped " << skippedCount << ")\n";
+      std::cout << "Successfully exported " << result.exportedCount
+                << " cards to " << outPath << " (Skipped "
+                << result.skippedCount << ")\n";
     }
 
   } catch (const json::parse_error &e) {
@@ -209,30 +154,12 @@ auto exportLastSet(const std::string &outputDir, const std::string &targetType,
     if (!jsonData.contains("data"))
       return;
 
-    std::string latestCode;
-    std::string latestDate;
-    std::string latestType;
-
-    for (const auto &setObj : jsonData["data"]) {
-      std::string code = setObj.value("code", "");
-      std::string date = setObj.value("releaseDate", "");
-      std::string type = setObj.value("type", "");
-
-      if (!targetType.empty() && type != targetType)
-        continue;
-
-      if (!code.empty() && date > latestDate) {
-        latestDate = date;
-        latestCode = code;
-        latestType = type;
-      }
-    }
-
-    if (!latestCode.empty()) {
-      std::cout << "Most recent set found: " << latestCode
-                << " (Released: " << latestDate << ", Type: " << latestType
-                << ")\n";
-      exportSet(latestCode, outputDir, pruneEmpty);
+    auto latest = findLatestSet(jsonData["data"], targetType);
+    if (!latest.code.empty()) {
+      std::cout << "Most recent set found: " << latest.code
+                << " (Released: " << latest.releaseDate
+                << ", Type: " << latest.type << ")\n";
+      exportSet(latest.code, outputDir, pruneEmpty);
     } else {
       std::cerr << "No valid sets found matching criteria.\n";
     }
