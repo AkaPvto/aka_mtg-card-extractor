@@ -1,99 +1,87 @@
-# MTGJSON Data Extractor CLI
+# Aka MTG Card Extractor
 
-Una aplicación de línea de comandos (CLI) escrita en C++ diseñada para interactuar con la API de [MTGJSON v5](https://mtgjson.com/api/v5/). 
+A command-line application written in C++ designed to interact with the [MTGJSON v5](https://mtgjson.com/api/v5/) API.
 
-El objetivo principal de esta herramienta es descargar datos de expansiones de Magic: The Gathering y extraer únicamente las cartas funcionales únicas (ignorando reimpresiones, cartas promocionales y artes alternativos). El resultado se exporta en archivos **Markdown** limpios y bien estructurados, ideales para ser importados y procesados por herramientas de Inteligencia Artificial como **NotebookLM**.
+The main goal of this tool is to download Magic: The Gathering set data and extract only unique functional cards — ignoring reprints, promotional cards, and alternate art versions. The output is exported as clean, well-structured **Markdown** files, ideal for importing into AI tools such as **NotebookLM**.
 
-## Características
+## Features
 
-- 🚀 **Escrito en C++ moderno**: Utiliza `libcurl` para conexiones HTTP y la librería `nlohmann/json` para un parseo rápido de JSON.
-- 🧹 **Filtrado Automático**: Filtra automáticamente cualquier carta marcada como `isReprint`, `isAlternative` o `isPromo` en la base de datos de MTGJSON, asegurándote de no tener versiones duplicadas de la misma carta en la salida final.
-- 📝 **Salida Optimizada para NotebookLM**: Genera archivos `.md` donde cada carta tiene su propia sección detallando su coste de maná, tipo, fuerza/resistencia y reglas, sin sintaxis JSON confusa.
-- 🔮 **A prueba de futuro**: Puedes consultar la lista actualizada de sets usando el comando `list` y extraer nuevas expansiones a medida que vayan saliendo a la venta.
+- 🚀 **Written in modern C++**: Uses `libcurl` for HTTP requests and `nlohmann/json` for fast JSON parsing.
+- 🧹 **Automatic filtering**: Automatically filters out any card flagged as `isReprint`, `isAlternative`, or `isPromo` in the MTGJSON database, ensuring no duplicate versions of the same card appear in the output.
+- 📝 **NotebookLM-optimized output**: Generates `.md` files where each card has its own section detailing its mana cost, type, power/toughness, and rules text — no messy JSON syntax.
+- 🔮 **Future-proof**: You can query the up-to-date set list using the `--list` command and extract new expansions as they are released.
 
-## Requisitos Previos
+## Prerequisites
 
-Para compilar el proyecto, necesitarás:
-- Un compilador con soporte para **C++17** (ej. `g++` o `clang++`).
-- **CMake** (versión 3.10 o superior).
-- **libcurl** (ej. paquete `libcurl4-openssl-dev` en Ubuntu/Debian).
+To build the project you will need:
+- A compiler with **C++17** support (e.g. `g++` or `clang++`).
+- **CMake** (version 3.10 or higher).
+- **libcurl** (e.g. the `libcurl4-openssl-dev` package on Ubuntu/Debian).
 
-*(Nota: La librería de parseo de JSON `nlohmann/json.hpp` ya está incluida en el código fuente para facilitar la compilación).*
+*(Note: The `nlohmann/json.hpp` parsing library is already bundled in the source tree under `third_party/` for convenience.)*
 
-## Compilación
-
-Sigue estos pasos para compilar el ejecutable:
+## Building
 
 ```bash
-# 1. Crea y entra al directorio de construcción
+# 1. Create and enter the build directory
 mkdir build
 cd build
 
-# 2. Configura el proyecto con CMake
+# 2. Configure the project with CMake
 cmake ..
 
-# 3. Compila el ejecutable
+# 3. Build the executable
 make
 ```
 
-Una vez terminado, tendrás el ejecutable `mtg_extractor` en la carpeta `build/`.
+Once done, the `mtg_extractor` binary will be available inside the `build/` folder.
 
-## Modo de Uso
+## Usage
 
-La herramienta ahora funciona mediante una sintaxis basada en argumentos (flags) muy versátil. Puedes usar las siguientes acciones principales:
-
-### 1. Listar Sets
-Lista el código (SET_CODE), fecha, tipo y nombre de todas las expansiones disponibles en MTGJSON. 
+### 1. List sets
+Lists the code, release date, type, and name of all sets available on MTGJSON.
 ```bash
 ./mtg_extractor --list
 ```
-*Tip: Puedes reducir la lista usando `--setType`, por ejemplo `--list --setType core` para ver solo colecciones básicas.*
+*Tip: Narrow the list with `--setType`, e.g. `--list --setType core` to show only core sets.*
 
-### 2. Exportar un Set (Markdown)
-Descarga el JSON de la expansión solicitada, procesa las cartas únicas y crea un archivo Markdown.
+### 2. Export a single set
+Downloads the JSON for the requested expansion, processes its unique cards, and writes a Markdown file.
 ```bash
 ./mtg_extractor --set ONE
 ```
 
-### 3. Exportar TODO de golpe
-Descarga la base de datos entera procesada expansión por expansión. 
+### 3. Export all sets
+Downloads and processes the entire database, one expansion at a time.
 ```bash
 ./mtg_extractor --all
 ```
-*Advertencia: Descargará y procesará cientos de expansiones. Ideal si le añades el filtro `--setType expansion` para descargar solo juegos principales y evitar colecciones suplementarias raras.*
+*Note: This downloads hundreds of expansions. Consider adding `--setType expansion` to limit the output to main sets and skip supplemental products.*
 
-### 4. Exportar el Set más Reciente
-Si tan solo te interesa bajarte la última colección salida al mercado:
+### 4. Export the most recent set
+Downloads only the latest set released.
 ```bash
 ./mtg_extractor --last
 ```
 
-### Opciones Extra (Filtros y Directorios)
-Puedes mezclar las acciones anteriores con las siguientes opciones extra:
-- `--setType <TIPO>`: (ej: `expansion`, `commander`, `core`, `masters`). Aplica este filtro y solo descargará o listará las expansiones que pertenezcan a ese tipo concreto. 
-- `--outDir <CARPETA>`: Determina la carpeta base donde se crearán los exports. Por defecto es `extraction`.
-- `--prune`: Si se añade, la app detectará y borrará automáticamente los archivos Markdown que se generen vacíos (sets donde se exportaron 0 cartas porque todas eran promos/reprints). ¡Perfecto para mantener la carpeta de extracción 100% limpia sin archivos inútiles!
+### Extra options
 
-**Ejemplo complejo combinando flags**:
+These can be combined with any of the actions above:
+
+| Flag | Description |
+|------|-------------|
+| `--setType <TYPE>` | Filter by set type (e.g. `expansion`, `commander`, `core`, `masters`). Only sets matching this type will be listed or exported. |
+| `--outDir <DIR>` | Base output directory for exported files. Defaults to `extraction`. |
+| `--prune` | Automatically deletes any Markdown files that end up empty (sets where all cards were promos or reprints). |
+
+**Example combining multiple flags**:
 ```bash
-./mtg_extractor --all --setType commander --prune --outDir ./sets_de_commander
+./mtg_extractor --all --setType commander --prune --outDir ./commander_sets
 ```
 
 ---
 
-## Preguntas Frecuentes (FAQ)
-
-**1. ¿Qué es el archivo `ARN_cards.md`?**
-Es un archivo de ejemplo que generamos como prueba. Contiene única y exclusivamente las cartas funcionales (sin incluir reimpresiones ni versiones promocionales) correspondientes a la expansión clásica *Arabian Nights (ARN)*.
-
-**2. ¿A dónde van a parar los archivos exportados?**
-Por defecto, si no especificas nada, los archivos (como `ONE_cards.md` o `ARN_cards.md`) se guardarán en **el directorio actual** en el que estés ejecutando la terminal (habitualmente representando por el punto `.`).
-Sin embargo, **puedes especificar cualquier carpeta de salida** como parámetro final. Por ejemplo:
-`./build/mtg_extractor export ARN /home/akapvto/mis_archivos/`
-
----
-
-## Ejemplo de Salida Markdown
+## Sample Markdown output
 
 ```markdown
 # Phyrexia: All Will Be One (ONE)
@@ -102,7 +90,7 @@ Sin embargo, **puedes especificar cualquier carpeta de salida** como parámetro 
 **Mana Cost**: {4}{W}
 **Type**: Legendary Creature — Phyrexian Praetor
 **Power/Toughness**: 4/7
-**Text**: 
+**Text**:
 > Vigilance
 > If a permanent entering the battlefield causes a triggered ability of a permanent you control to trigger, that ability triggers an additional time.
 ```
