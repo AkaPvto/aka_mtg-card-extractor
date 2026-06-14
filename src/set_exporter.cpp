@@ -14,6 +14,7 @@
 
 using json = nlohmann::json;
 
+// Protects stdout/stderr from interleaving when exportSet runs concurrently.
 static std::mutex cout_mutex;
 
 auto exportSet(const std::string &setCode, const std::string &outputDir,
@@ -88,6 +89,7 @@ auto exportSet(const std::string &setCode, const std::string &outputDir,
                 << "\n";
       if (card.contains("text")) {
         std::string text = card["text"].get<std::string>();
+        // Render as a markdown blockquote: prefix each line with "> ".
         outFile << "**Text**:\n> ";
         for (char c : text)
           outFile << (c == '\n' ? "\n> " : std::string(1, c));
@@ -164,8 +166,10 @@ auto exportAllSets(const std::string &outputDir, const std::string &targetType,
     }
 
     std::atomic<size_t> currentIndex(0);
-    const size_t numThreads = 12;
+    const size_t numThreads = 12; // Tune this to control API request concurrency.
     std::vector<std::thread> workers;
+    // Each worker atomically claims the next set index, so all threads stay
+    // busy without duplicating work.
 
     std::cout << "Starting concurrent extraction of " << codes.size()
               << " sets using " << numThreads << " threads...\n";

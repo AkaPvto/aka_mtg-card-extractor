@@ -3,9 +3,12 @@
 #include <curl/curl.h>
 #include <iostream>
 
+// libcurl calls this repeatedly as response data arrives, appending each chunk
+// into the string pointed to by userp.
 static auto WriteCallback(void *contents, size_t size, size_t nmemb,
                           void *userp) -> size_t {
-  ((std::string *)userp)->append((char *)contents, size * nmemb);
+  auto *buffer = static_cast<std::string *>(userp);
+  buffer->append(static_cast<char *>(contents), size * nmemb);
   return size * nmemb;
 }
 
