@@ -1,4 +1,5 @@
 #pragma once
+
 #include <string>
 
-std::string fetchURL(const std::string& url);
+auto fetchURL(const std::string &url) -> std::string;

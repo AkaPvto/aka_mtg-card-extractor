@@ -1,4 +1,5 @@
 #pragma once
+
 #include <string>
 
-void listSets(const std::string& targetType);
+auto listSets(const std::string &targetType) -> void;
