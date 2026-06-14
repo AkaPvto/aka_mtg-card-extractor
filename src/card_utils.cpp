@@ -4,8 +4,8 @@
 #include <string>
 
 auto shouldSkipCard(const json &card) -> bool {
-  return card.value("isReprint", false) ||
-         card.value("isAlternative", false) || card.value("isPromo", false);
+  return card.value("isReprint", false) || card.value("isAlternative", false) ||
+         card.value("isPromo", false);
 }
 
 auto textToBlockquote(const std::string &text) -> std::string {

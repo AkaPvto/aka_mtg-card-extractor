@@ -111,7 +111,8 @@ auto exportAllSets(const std::string &outputDir, const std::string &targetType,
     }
 
     std::atomic<size_t> currentIndex(0);
-    const size_t numThreads = 12; // Tune this to control API request concurrency.
+    const size_t numThreads =
+        12; // Tune this to control API request concurrency.
     std::vector<std::thread> workers;
     // Each worker atomically claims the next set index, so all threads stay
     // busy without duplicating work.
