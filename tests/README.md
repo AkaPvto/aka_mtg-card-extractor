@@ -29,9 +29,11 @@ To run the test binary directly (more verbose output):
 
 | File | What it covers |
 |---|---|
-| `test_utils.cpp` | `getTimestampString` — format and length |
+| `test_utils.cpp` | `getTimestampString` — format and length; `parseCommaSeparated` — single, multiple, and edge-case inputs |
 | `test_card_utils.cpp` | `shouldSkipCard`, `textToBlockquote`, `buildOutPath` |
 | `test_serialization.cpp` | `serializeCardToMarkdown`, `serializeSetToMarkdown`, `findLatestSet` |
+| `test_set_filter.cpp` | `filterSetCodes` — type filter, `--fromDate`/`--toDate` (inclusive bounds, narrow ranges, combined with type), `--fromSet`/`--toSet` (resolves to release date, both bounds, unknown set fallback) |
+| `test_zip_utils.cpp` | `createZipFromDirectory` — file creation, correct entry count, nested paths, top-level files, invalid source dir, empty directory |
 
 ### Supporting directories
 
@@ -76,5 +78,7 @@ TEST(SerializeSetTest, MyNewSet) {
 ### Testing a new extracted helper
 
 If you add a new pure function to `card_utils.cpp`, declare it in `card_utils.hpp` and add tests for it in `test_card_utils.cpp` or `test_serialization.cpp` depending on whether it is a low-level utility or part of the serialization pipeline.
+
+If you add a new filter or selection criterion to `filterSetCodes`, add cases to `test_set_filter.cpp` using the existing `SetList_minimal.json` mock (or extend it with the new set types/dates you need).
 
 Functions that make HTTP calls (`fetchURL`, `exportSet`, etc.) cannot be unit tested without a mocking layer and are intentionally left out of scope.

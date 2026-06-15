@@ -3,6 +3,7 @@
 #include "card_utils.hpp"
 #include "http_client.hpp"
 
+#include <algorithm>
 #include <atomic>
 #include <filesystem>
 #include <fstream>
@@ -62,8 +63,34 @@ auto exportSet(const std::string &setCode, const std::string &outputDir,
   }
 }
 
+auto exportSets(const std::vector<std::string> &setCodes,
+                const std::string &outputDir, bool pruneEmpty) -> void {
+  std::atomic<size_t> currentIndex(0);
+  const size_t numThreads = std::min<size_t>(12, setCodes.size());
+  std::vector<std::thread> workers;
+
+  std::cout << "Exporting " << setCodes.size() << " sets using " << numThreads
+            << " threads...\n";
+
+  for (size_t i = 0; i < numThreads; ++i) {
+    workers.emplace_back([&]() {
+      while (true) {
+        size_t idx = currentIndex.fetch_add(1);
+        if (idx >= setCodes.size())
+          break;
+        exportSet(setCodes[idx], outputDir, pruneEmpty);
+      }
+    });
+  }
+
+  for (auto &worker : workers)
+    worker.join();
+}
+
 auto exportAllSets(const std::string &outputDir, const std::string &targetType,
-                   bool pruneEmpty) -> void {
+                   bool pruneEmpty, const std::string &fromDate,
+                   const std::string &toDate, const std::string &fromSet,
+                   const std::string &toSet) -> void {
   std::cout << "Fetching SetList.json to determine all available sets...\n";
   std::string jsonString = fetchURL("https://mtgjson.com/api/v5/SetList.json");
   if (jsonString.empty()) {
@@ -76,7 +103,24 @@ auto exportAllSets(const std::string &outputDir, const std::string &targetType,
     if (!jsonData.contains("data"))
       return;
 
-    std::vector<std::string> codes;
+    // Warn if fromSet/toSet codes are not found before filtering.
+    if (!fromSet.empty() || !toSet.empty()) {
+      bool foundFrom = fromSet.empty(), foundTo = toSet.empty();
+      for (const auto &setObj : jsonData["data"]) {
+        std::string code = setObj.value("code", "");
+        if (code == fromSet) foundFrom = true;
+        if (code == toSet) foundTo = true;
+      }
+      if (!foundFrom)
+        std::cerr << "Warning: set code '" << fromSet
+                  << "' not found in SetList, ignoring --fromSet\n";
+      if (!foundTo)
+        std::cerr << "Warning: set code '" << toSet
+                  << "' not found in SetList, ignoring --toSet\n";
+    }
+
+    auto codes = filterSetCodes(jsonData["data"], targetType, fromDate, toDate,
+                                fromSet, toSet);
 
     std::string listOutPath = outputDir + "/sets_list.md";
     std::ofstream listFile(listOutPath);
@@ -84,26 +128,16 @@ auto exportAllSets(const std::string &outputDir, const std::string &targetType,
       listFile << "# MTG Sets List\n\n";
       listFile << "| Code | Type | Name | Release Date |\n";
       listFile << "|------|------|------|--------------|\n";
-    }
-
-    for (const auto &setObj : jsonData["data"]) {
-      std::string code = setObj.value("code", "");
-      std::string name = setObj.value("name", "");
-      std::string rDate = setObj.value("releaseDate", "");
-      std::string type = setObj.value("type", "");
-
-      if (!targetType.empty() && type != targetType)
-        continue;
-
-      if (!code.empty()) {
-        codes.push_back(code);
-        if (listFile.is_open())
-          listFile << "| " << code << " | " << type << " | " << name << " | "
-                   << rDate << " |\n";
+      for (const auto &setObj : jsonData["data"]) {
+        std::string code = setObj.value("code", "");
+        if (std::find(codes.begin(), codes.end(), code) != codes.end()) {
+          listFile << "| " << code << " | " << setObj.value("type", "")
+                   << " | " << setObj.value("name", "") << " | "
+                   << setObj.value("releaseDate", "") << " |\n";
+        }
       }
-    }
-    if (listFile.is_open())
       listFile.close();
+    }
 
     if (codes.empty()) {
       std::cout << "No sets found matching criteria.\n";
@@ -111,11 +145,8 @@ auto exportAllSets(const std::string &outputDir, const std::string &targetType,
     }
 
     std::atomic<size_t> currentIndex(0);
-    const size_t numThreads =
-        12; // Tune this to control API request concurrency.
+    const size_t numThreads = 12;
     std::vector<std::thread> workers;
-    // Each worker atomically claims the next set index, so all threads stay
-    // busy without duplicating work.
 
     std::cout << "Starting concurrent extraction of " << codes.size()
               << " sets using " << numThreads << " threads...\n";

@@ -2,6 +2,7 @@
 
 #include <set>
 #include <string>
+#include <vector>
 
 auto shouldSkipCard(const json &card) -> bool {
   return card.value("isReprint", false) || card.value("isAlternative", false) ||
@@ -92,4 +93,40 @@ auto findLatestSet(const json &setsArray, const std::string &targetType)
     }
   }
   return latest;
+}
+
+auto filterSetCodes(const json &setsArray, const std::string &targetType,
+                    const std::string &fromDate, const std::string &toDate,
+                    const std::string &fromSet, const std::string &toSet)
+    -> std::vector<std::string> {
+  std::string effectiveFrom = fromDate;
+  std::string effectiveTo = toDate;
+
+  if (!fromSet.empty() || !toSet.empty()) {
+    for (const auto &setObj : setsArray) {
+      std::string code = setObj.value("code", "");
+      std::string date = setObj.value("releaseDate", "");
+      if (!fromSet.empty() && code == fromSet)
+        effectiveFrom = date;
+      if (!toSet.empty() && code == toSet)
+        effectiveTo = date;
+    }
+  }
+
+  std::vector<std::string> codes;
+  for (const auto &setObj : setsArray) {
+    std::string code = setObj.value("code", "");
+    std::string type = setObj.value("type", "");
+    std::string date = setObj.value("releaseDate", "");
+
+    if (!targetType.empty() && type != targetType)
+      continue;
+    if (!effectiveFrom.empty() && date < effectiveFrom)
+      continue;
+    if (!effectiveTo.empty() && date > effectiveTo)
+      continue;
+    if (!code.empty())
+      codes.push_back(code);
+  }
+  return codes;
 }

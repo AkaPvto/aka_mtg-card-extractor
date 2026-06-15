@@ -15,8 +15,9 @@ The main goal of this tool is to download Magic: The Gathering set data and extr
 
 To build the project you will need:
 - A compiler with **C++17** support (e.g. `g++` or `clang++`).
-- **CMake** (version 3.10 or higher).
+- **CMake** (version 3.14 or higher).
 - **libcurl** (e.g. the `libcurl4-openssl-dev` package on Ubuntu/Debian).
+- **libzip** (e.g. the `libzip-dev` package on Ubuntu/Debian).
 
 *(Note: The `nlohmann/json.hpp` parsing library is already bundled in the source tree under `third_party/` for convenience.)*
 
@@ -51,14 +52,20 @@ Downloads the JSON for the requested expansion, processes its unique cards, and 
 ./mtg_extractor --set ONE
 ```
 
-### 3. Export all sets
+### 3. Export specific sets
+Exports a comma-separated list of set codes in one run. Use `--list` first to find the codes you want.
+```bash
+./mtg_extractor --sets ONE,ARN,MIR
+```
+
+### 4. Export all sets
 Downloads and processes the entire database, one expansion at a time.
 ```bash
 ./mtg_extractor --all
 ```
 *Note: This downloads hundreds of expansions. Consider adding `--setType expansion` to limit the output to main sets and skip supplemental products.*
 
-### 4. Export the most recent set
+### 5. Export the most recent set
 Downloads only the latest set released.
 ```bash
 ./mtg_extractor --last
@@ -72,11 +79,26 @@ These can be combined with any of the actions above:
 |------|-------------|
 | `--setType <TYPE>` | Filter by set type (e.g. `expansion`, `commander`, `core`, `masters`). Only sets matching this type will be listed or exported. |
 | `--outDir <DIR>` | Base output directory for exported files. Defaults to `extraction`. |
+| `--fromDate <YYYY-MM-DD>` | Export only sets released on or after this date (use with `--all`). |
+| `--toDate <YYYY-MM-DD>` | Export only sets released on or before this date (use with `--all`). |
+| `--fromSet <CODE>` | Export only sets released on or after this set's release date (use with `--all`). |
+| `--toSet <CODE>` | Export only sets released on or before this set's release date (use with `--all`). |
 | `--prune` | Automatically deletes any Markdown files that end up empty (sets where all cards were promos or reprints). |
+| `--zip` | Compresses the output folder into a `.zip` archive after export. |
 
-**Example combining multiple flags**:
+**Examples**:
 ```bash
+# Export all commander sets, removing empty files
 ./mtg_extractor --all --setType commander --prune --outDir ./commander_sets
+
+# Export only sets released between two dates
+./mtg_extractor --all --fromDate 2020-01-01 --toDate 2023-12-31
+
+# Export all expansion sets from Mirrodin through Scars of Mirrodin and compress the result
+./mtg_extractor --all --setType expansion --fromSet MRD --toSet SOM --zip
+
+# Pick specific sets from the list and export them
+./mtg_extractor --sets ONE,ARN,LEA --outDir ./my_picks
 ```
 
 ---

@@ -3,6 +3,7 @@
 #include "../third_party/json.hpp"
 
 #include <string>
+#include <vector>
 
 using json = nlohmann::json;
 
@@ -41,3 +42,11 @@ auto serializeSetToMarkdown(const json &setData, const std::string &setCode)
 // filtered by type. Returns an empty SetInfo if nothing matches.
 auto findLatestSet(const json &setsArray, const std::string &targetType)
     -> SetInfo;
+
+// Returns set codes from setsArray that match all provided filters.
+// fromDate/toDate: "YYYY-MM-DD" inclusive bounds (empty = no bound).
+// fromSet/toSet: resolved to that set's release date before filtering.
+auto filterSetCodes(const json &setsArray, const std::string &targetType,
+                    const std::string &fromDate, const std::string &toDate,
+                    const std::string &fromSet, const std::string &toSet)
+    -> std::vector<std::string>;
