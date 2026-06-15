@@ -5,6 +5,8 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(CURL REQUIRED)
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(LIBZIP REQUIRED libzip)
 
 # ---------------------------------------------------------------------------
 # Main executable
@@ -17,6 +19,7 @@ set(SOURCES
     src/set_exporter.cpp
     src/card_utils.cpp
     src/utils.cpp
+    src/zip_utils.cpp
 )
 
 add_executable(mtg_extractor ${SOURCES})
@@ -24,9 +27,10 @@ add_executable(mtg_extractor ${SOURCES})
 target_include_directories(mtg_extractor PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_SOURCE_DIR}/third_party
+    ${LIBZIP_INCLUDE_DIRS}
 )
 
-target_link_libraries(mtg_extractor CURL::libcurl)
+target_link_libraries(mtg_extractor CURL::libcurl ${LIBZIP_LIBRARIES})
 
 add_custom_command(TARGET mtg_extractor POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E create_symlink
@@ -54,20 +58,24 @@ add_executable(mtg_tests
     tests/test_utils.cpp
     tests/test_card_utils.cpp
     tests/test_serialization.cpp
+    tests/test_set_filter.cpp
+    tests/test_zip_utils.cpp
     src/card_utils.cpp
     src/utils.cpp
+    src/zip_utils.cpp
 )
 
 target_include_directories(mtg_tests PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_SOURCE_DIR}/third_party
+    ${LIBZIP_INCLUDE_DIRS}
 )
 
 target_compile_definitions(mtg_tests PRIVATE
     "TEST_DATA_DIR=\"${CMAKE_CURRENT_SOURCE_DIR}/tests\""
 )
 
-target_link_libraries(mtg_tests GTest::gtest_main)
+target_link_libraries(mtg_tests GTest::gtest_main ${LIBZIP_LIBRARIES})
 
 include(GoogleTest)
 gtest_discover_tests(mtg_tests)
