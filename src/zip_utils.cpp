@@ -33,16 +33,15 @@ auto createZipFromDirectory(const std::string &sourceDir,
     std::string absolutePath = entry.path().string();
     std::string relativePath = fs::relative(entry.path(), basePath).string();
 
-    zip_source_t *source =
-        zip_source_file(archive, absolutePath.c_str(), 0, 0);
+    zip_source_t *source = zip_source_file(archive, absolutePath.c_str(), 0, 0);
     if (!source) {
       std::cerr << "Failed to create source for: " << absolutePath << "\n";
       zip_discard(archive);
       return false;
     }
 
-    if (zip_file_add(archive, relativePath.c_str(), source,
-                     ZIP_FL_OVERWRITE) < 0) {
+    if (zip_file_add(archive, relativePath.c_str(), source, ZIP_FL_OVERWRITE) <
+        0) {
       std::cerr << "Failed to add to zip: " << relativePath << "\n";
       zip_source_free(source);
       zip_discard(archive);

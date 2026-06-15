@@ -108,8 +108,10 @@ auto exportAllSets(const std::string &outputDir, const std::string &targetType,
       bool foundFrom = fromSet.empty(), foundTo = toSet.empty();
       for (const auto &setObj : jsonData["data"]) {
         std::string code = setObj.value("code", "");
-        if (code == fromSet) foundFrom = true;
-        if (code == toSet) foundTo = true;
+        if (code == fromSet)
+          foundFrom = true;
+        if (code == toSet)
+          foundTo = true;
       }
       if (!foundFrom)
         std::cerr << "Warning: set code '" << fromSet
@@ -131,8 +133,8 @@ auto exportAllSets(const std::string &outputDir, const std::string &targetType,
       for (const auto &setObj : jsonData["data"]) {
         std::string code = setObj.value("code", "");
         if (std::find(codes.begin(), codes.end(), code) != codes.end()) {
-          listFile << "| " << code << " | " << setObj.value("type", "")
-                   << " | " << setObj.value("name", "") << " | "
+          listFile << "| " << code << " | " << setObj.value("type", "") << " | "
+                   << setObj.value("name", "") << " | "
                    << setObj.value("releaseDate", "") << " |\n";
         }
       }

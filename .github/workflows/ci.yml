@@ -15,7 +15,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake ninja-build libcurl4-openssl-dev clang
+          sudo apt-get install -y cmake ninja-build libcurl4-openssl-dev libzip-dev clang
 
       - name: Configure
         run: cmake --preset debug-clang
@@ -51,7 +51,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake ninja-build libcurl4-openssl-dev clang clang-tidy
+          sudo apt-get install -y cmake ninja-build libcurl4-openssl-dev libzip-dev clang clang-tidy
 
       - name: Configure
         run: cmake --preset debug-clang
