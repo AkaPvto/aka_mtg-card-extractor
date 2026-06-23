@@ -1,0 +1,5 @@
+[
+  {"code": "TST",  "name": "Test Set",       "releaseDate": "2025-01-01", "type": "expansion"},
+  {"code": "TCMD", "name": "Test Commander", "releaseDate": "2025-03-01", "type": "commander"},
+  {"code": "TST2", "name": "Test Set 2",     "releaseDate": "2025-06-01", "type": "expansion"}
+]

@@ -50,3 +50,8 @@ auto filterSetCodes(const json &setsArray, const std::string &targetType,
                     const std::string &fromDate, const std::string &toDate,
                     const std::string &fromSet, const std::string &toSet)
     -> std::vector<std::string>;
+
+// Returns a copy of setsArray sorted ascending by the given field
+// ("code", "name", "releaseDate", "type"). Returns unchanged if orderBy is
+// empty or unrecognized.
+auto sortSetList(json setsArray, const std::string &orderBy) -> json;
