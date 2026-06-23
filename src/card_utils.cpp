@@ -136,8 +136,8 @@ auto sortSetList(json setsArray, const std::string &orderBy) -> json {
   if (orderBy.empty())
     return setsArray;
   std::stable_sort(setsArray.begin(), setsArray.end(),
-            [&](const json &a, const json &b) {
-              return a.value(orderBy, "") < b.value(orderBy, "");
-            });
+                   [&](const json &a, const json &b) {
+                     return a.value(orderBy, "") < b.value(orderBy, "");
+                   });
   return setsArray;
 }
