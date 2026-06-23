@@ -18,6 +18,11 @@ static auto loadSet(const std::string &filename) -> json {
       readFile(std::string(TEST_DATA_DIR) + "/mock_data/" + filename));
 }
 
+static auto loadResult(const std::string &filename) -> json {
+  return json::parse(
+      readFile(std::string(TEST_DATA_DIR) + "/results/" + filename));
+}
+
 static auto contains(const std::vector<std::string> &v, const std::string &s)
     -> bool {
   return std::find(v.begin(), v.end(), s) != v.end();
@@ -160,4 +165,50 @@ TEST(FilterSetCodesTest, UnknownToSetFallsBackToNoUpperBound) {
   auto data = loadSet("SetList_minimal.json");
   auto codes = filterSetCodes(data["data"], "", "", "", "", "UNKNOWN");
   EXPECT_EQ(codes.size(), 3u);
+}
+
+// ---------------------------------------------------------------------------
+// sortSetList
+// ---------------------------------------------------------------------------
+// SetList_minimal.json has:
+//   TST  – expansion – 2025-01-01
+//   TST2 – expansion – 2025-06-01
+//   TCMD – commander – 2025-03-01
+
+TEST(SortSetListTest, EmptyOrderByReturnsOriginalOrder) {
+  auto data = loadSet("SetList_minimal.json");
+  EXPECT_EQ(sortSetList(data["data"], ""), data["data"]);
+}
+
+TEST(SortSetListTest, UnknownFieldReturnsOriginalOrder) {
+  auto data = loadSet("SetList_minimal.json");
+  EXPECT_EQ(sortSetList(data["data"], "nonexistent"), data["data"]);
+}
+
+TEST(SortSetListTest, OrderByCode) {
+  auto data = loadSet("SetList_minimal.json");
+  EXPECT_EQ(sortSetList(data["data"], "code"),
+            loadResult("SetList_sorted_by_code_expected.json"));
+}
+
+TEST(SortSetListTest, OrderByName) {
+  auto data = loadSet("SetList_minimal.json");
+  EXPECT_EQ(sortSetList(data["data"], "name"),
+            loadResult("SetList_sorted_by_name_expected.json"));
+}
+
+TEST(SortSetListTest, OrderByReleaseDate) {
+  auto data = loadSet("SetList_minimal.json");
+  EXPECT_EQ(sortSetList(data["data"], "releaseDate"),
+            loadResult("SetList_sorted_by_releaseDate_expected.json"));
+}
+
+TEST(SortSetListTest, OrderByType) {
+  auto data = loadSet("SetList_minimal.json");
+  EXPECT_EQ(sortSetList(data["data"], "type"),
+            loadResult("SetList_sorted_by_type_expected.json"));
+}
+
+TEST(SortSetListTest, EmptyArrayReturnsEmpty) {
+  EXPECT_TRUE(sortSetList(json::array(), "code").empty());
 }

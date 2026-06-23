@@ -1,12 +1,14 @@
 #include "set_lister.hpp"
 #include "../third_party/json.hpp"
+#include "card_utils.hpp"
 #include "http_client.hpp"
 
 #include <iostream>
 
 using json = nlohmann::json;
 
-auto listSets(const std::string &targetType) -> void {
+auto listSets(const std::string &targetType, const std::string &orderBy)
+    -> void {
   std::cout << "Fetching available expansion sets from MTGJSON...\n";
   std::string jsonString = fetchURL("https://mtgjson.com/api/v5/SetList.json");
   if (jsonString.empty()) {
@@ -19,9 +21,11 @@ auto listSets(const std::string &targetType) -> void {
     if (!jsonData.contains("data"))
       return;
 
+    auto setList = sortSetList(jsonData["data"], orderBy);
+
     std::cout << "Code\t| Release Date | Type         | Name\n";
     std::cout << "--------------------------------------------------------\n";
-    for (const auto &setObj : jsonData["data"]) {
+    for (const auto &setObj : setList) {
       std::string code = setObj.value("code", "N/A");
       std::string name = setObj.value("name", "N/A");
       std::string releaseDate = setObj.value("releaseDate", "N/A");
