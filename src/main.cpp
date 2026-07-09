@@ -4,6 +4,7 @@
 #include "set_exporter.hpp"
 #include "set_lister.hpp"
 
+#include <algorithm>
 #include <curl/curl.h>
 #include <filesystem>
 #include <iostream>
@@ -26,6 +27,8 @@ auto printHelp() -> void {
       << "Options:\n"
       << "  --setType <TYPE>              Filters parsing to only parse sets "
          "matching TYPE (e.g. expansion, commander, core)\n"
+      << "  --orderBy <FIELD>             Sorts --list output by field: code, "
+         "name, releaseDate, type (default: API order)\n"
       << "  --outDir <DIR>                Specifies base output directory "
          "(Default: extraction)\n"
       << "  --fromDate <YYYY-MM-DD>       Exports only sets released on or "
@@ -58,6 +61,7 @@ auto main(int argc, char *argv[]) -> int {
   std::string targetSet;
   std::vector<std::string> targetSets;
   std::string setType;
+  std::string orderBy;
   std::string outDir = "extraction";
   std::string fromDate;
   std::string toDate;
@@ -86,6 +90,15 @@ auto main(int argc, char *argv[]) -> int {
       targetSets = parseCommaSeparated(argv[++i]);
     } else if (arg == "--setType" && i + 1 < argc) {
       setType = argv[++i];
+    } else if (arg == "--orderBy" && i + 1 < argc) {
+      orderBy = argv[++i];
+      const std::vector<std::string> valid = {"code", "name", "releaseDate",
+                                              "type"};
+      if (std::find(valid.begin(), valid.end(), orderBy) == valid.end()) {
+        std::cerr << "Unknown --orderBy value: " << orderBy
+                  << ". Valid values: code, name, releaseDate, type\n";
+        return 1;
+      }
     } else if (arg == "--outDir" && i + 1 < argc) {
       outDir = argv[++i];
     } else if (arg == "--fromDate" && i + 1 < argc) {
@@ -112,7 +125,7 @@ auto main(int argc, char *argv[]) -> int {
   curl_global_init(CURL_GLOBAL_DEFAULT);
 
   if (action == "list") {
-    listSets(setType);
+    listSets(setType, orderBy);
   } else {
     std::string finalDir = outDir + "/" + getTimestampString();
     std::filesystem::create_directories(finalDir);

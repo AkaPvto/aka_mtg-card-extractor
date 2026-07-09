@@ -1,5 +1,6 @@
 #include "card_utils.hpp"
 
+#include <algorithm>
 #include <set>
 #include <string>
 #include <vector>
@@ -129,4 +130,14 @@ auto filterSetCodes(const json &setsArray, const std::string &targetType,
       codes.push_back(code);
   }
   return codes;
+}
+
+auto sortSetList(json setsArray, const std::string &orderBy) -> json {
+  if (orderBy.empty())
+    return setsArray;
+  std::stable_sort(setsArray.begin(), setsArray.end(),
+                   [&](const json &a, const json &b) {
+                     return a.value(orderBy, "") < b.value(orderBy, "");
+                   });
+  return setsArray;
 }
