@@ -39,6 +39,8 @@ auto printHelp() -> void {
          "after CODE's release date (use with --all)\n"
       << "  --toSet <CODE>                Exports only sets released on or "
          "before CODE's release date (use with --all)\n"
+      << "  --groupBy <FIELD>             Groups exported sets into single "
+         "markdown files (year, month, setType)\n"
       << "  --prune                       Automatically deletes markdown files "
          "if 0 cards were exported\n"
       << "  --zip                         Compresses the output folder into a "
@@ -67,6 +69,7 @@ auto main(int argc, char *argv[]) -> int {
   std::string toDate;
   std::string fromSet;
   std::string toSet;
+  std::string groupBy;
   bool pruneEmpty = false;
   bool doZip = false;
 
@@ -90,6 +93,8 @@ auto main(int argc, char *argv[]) -> int {
       targetSets = parseCommaSeparated(argv[++i]);
     } else if (arg == "--setType" && i + 1 < argc) {
       setType = argv[++i];
+    } else if (arg == "--groupBy" && i + 1 < argc) {
+      groupBy = argv[++i];
     } else if (arg == "--orderBy" && i + 1 < argc) {
       orderBy = argv[++i];
       const std::vector<std::string> valid = {"code", "name", "releaseDate",
@@ -131,19 +136,19 @@ auto main(int argc, char *argv[]) -> int {
     std::filesystem::create_directories(finalDir);
 
     if (action == "set") {
-      exportSet(targetSet, finalDir, pruneEmpty);
+      exportSet(targetSet, finalDir, pruneEmpty, groupBy);
     } else if (action == "sets") {
       if (targetSets.empty()) {
         std::cerr << "Error: --sets requires at least one set code.\n";
         curl_global_cleanup();
         return 1;
       }
-      exportSets(targetSets, finalDir, pruneEmpty);
+      exportSets(targetSets, finalDir, pruneEmpty, groupBy);
     } else if (action == "all") {
       exportAllSets(finalDir, setType, pruneEmpty, fromDate, toDate, fromSet,
-                    toSet);
+                    toSet, groupBy);
     } else if (action == "last") {
-      exportLastSet(finalDir, setType, pruneEmpty);
+      exportLastSet(finalDir, setType, pruneEmpty, groupBy);
     }
 
     if (doZip) {
