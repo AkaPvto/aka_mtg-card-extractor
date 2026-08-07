@@ -19,7 +19,7 @@ using json = nlohmann::json;
 static std::mutex cout_mutex;
 
 auto exportSet(const std::string &setCode, const std::string &outputDir,
-               bool pruneEmpty) -> void {
+               bool pruneEmpty, const std::string &groupBy) -> void {
   std::string url = "https://mtgjson.com/api/v5/" + setCode + ".json";
   std::string jsonString = fetchURL(url);
   if (jsonString.empty()) {
@@ -31,31 +31,50 @@ auto exportSet(const std::string &setCode, const std::string &outputDir,
   try {
     auto jsonData = json::parse(jsonString);
     if (!jsonData.contains("data") || !jsonData["data"].contains("cards")) {
+      std::lock_guard<std::mutex> lock(cout_mutex);
       std::cerr << "Invalid JSON format for set data.\n";
       return;
     }
 
-    std::string outPath = buildOutPath(outputDir, setCode);
-    std::ofstream outFile(outPath);
-    if (!outFile.is_open()) {
-      std::cerr << "Failed to open " << outPath << " for writing.\n";
+    auto result = serializeSetToMarkdown(jsonData["data"], setCode);
+
+    if (pruneEmpty && result.exportedCount == 0) {
+      std::lock_guard<std::mutex> lock(cout_mutex);
+      std::cout << "Pruned empty set " << setCode << " (0 unique cards)\n";
       return;
     }
 
-    auto result = serializeSetToMarkdown(jsonData["data"], setCode);
-    outFile << result.content;
-    outFile.close();
+    std::string releaseDate = jsonData["data"].value("releaseDate", "");
+    std::string type = jsonData["data"].value("type", "");
 
-    if (pruneEmpty && result.exportedCount == 0) {
-      std::filesystem::remove(outPath);
-      std::lock_guard<std::mutex> lock(cout_mutex);
-      std::cout << "Pruned empty set " << setCode << " (0 unique cards)\n";
-    } else {
-      std::lock_guard<std::mutex> lock(cout_mutex);
-      std::cout << "Successfully exported " << result.exportedCount
-                << " cards to " << outPath << " (Skipped "
-                << result.skippedCount << ")\n";
+    std::string fileName = setCode + "_cards.md";
+    if (groupBy == "year" && releaseDate.length() >= 4) {
+      fileName = releaseDate.substr(0, 4) + "_cards.md";
+    } else if (groupBy == "month" && releaseDate.length() >= 7) {
+      fileName = releaseDate.substr(0, 7) + "_cards.md";
+    } else if (groupBy == "setType" && !type.empty()) {
+      fileName = type + "_cards.md";
     }
+
+    std::string outPath = outputDir.empty() || outputDir == "." ? fileName : outputDir + "/" + fileName;
+
+    {
+      static std::mutex file_mutex;
+      std::lock_guard<std::mutex> fileLock(file_mutex);
+      std::ofstream outFile(outPath, std::ios::app);
+      if (!outFile.is_open()) {
+        std::lock_guard<std::mutex> lock(cout_mutex);
+        std::cerr << "Failed to open " << outPath << " for writing.\n";
+        return;
+      }
+      outFile << result.content;
+      outFile.close();
+    }
+
+    std::lock_guard<std::mutex> lock(cout_mutex);
+    std::cout << "Successfully exported " << result.exportedCount
+              << " cards to " << outPath << " (Skipped "
+              << result.skippedCount << ")\n";
 
   } catch (const json::parse_error &e) {
     std::lock_guard<std::mutex> lock(cout_mutex);
@@ -64,7 +83,8 @@ auto exportSet(const std::string &setCode, const std::string &outputDir,
 }
 
 auto exportSets(const std::vector<std::string> &setCodes,
-                const std::string &outputDir, bool pruneEmpty) -> void {
+                const std::string &outputDir, bool pruneEmpty,
+                const std::string &groupBy) -> void {
   std::atomic<size_t> currentIndex(0);
   const size_t numThreads = std::min<size_t>(12, setCodes.size());
   std::vector<std::thread> workers;
@@ -78,7 +98,7 @@ auto exportSets(const std::vector<std::string> &setCodes,
         size_t idx = currentIndex.fetch_add(1);
         if (idx >= setCodes.size())
           break;
-        exportSet(setCodes[idx], outputDir, pruneEmpty);
+        exportSet(setCodes[idx], outputDir, pruneEmpty, groupBy);
       }
     });
   }
@@ -90,7 +110,8 @@ auto exportSets(const std::vector<std::string> &setCodes,
 auto exportAllSets(const std::string &outputDir, const std::string &targetType,
                    bool pruneEmpty, const std::string &fromDate,
                    const std::string &toDate, const std::string &fromSet,
-                   const std::string &toSet) -> void {
+                   const std::string &toSet,
+                   const std::string &groupBy) -> void {
   std::cout << "Fetching SetList.json to determine all available sets...\n";
   std::string jsonString = fetchURL("https://mtgjson.com/api/v5/SetList.json");
   if (jsonString.empty()) {
@@ -159,7 +180,7 @@ auto exportAllSets(const std::string &outputDir, const std::string &targetType,
           size_t idx = currentIndex.fetch_add(1);
           if (idx >= codes.size())
             break;
-          exportSet(codes[idx], outputDir, pruneEmpty);
+          exportSet(codes[idx], outputDir, pruneEmpty, groupBy);
         }
       });
     }
@@ -175,7 +196,7 @@ auto exportAllSets(const std::string &outputDir, const std::string &targetType,
 }
 
 auto exportLastSet(const std::string &outputDir, const std::string &targetType,
-                   bool pruneEmpty) -> void {
+                   bool pruneEmpty, const std::string &groupBy) -> void {
   std::cout << "Fetching SetList.json to determine the most recent set...\n";
   std::string jsonString = fetchURL("https://mtgjson.com/api/v5/SetList.json");
   if (jsonString.empty()) {
@@ -193,7 +214,7 @@ auto exportLastSet(const std::string &outputDir, const std::string &targetType,
       std::cout << "Most recent set found: " << latest.code
                 << " (Released: " << latest.releaseDate
                 << ", Type: " << latest.type << ")\n";
-      exportSet(latest.code, outputDir, pruneEmpty);
+      exportSet(latest.code, outputDir, pruneEmpty, groupBy);
     } else {
       std::cerr << "No valid sets found matching criteria.\n";
     }

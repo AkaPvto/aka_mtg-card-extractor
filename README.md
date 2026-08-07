@@ -80,6 +80,7 @@ These can be combined with any of the actions above:
 | `--setType <TYPE>` | Filter by set type (e.g. `expansion`, `commander`, `core`, `masters`). Only sets matching this type will be listed or exported. |
 | `--orderBy <FIELD>` | Sort `--list` output by a field: `code`, `name`, `releaseDate`, or `type`. Defaults to the API order. |
 | `--outDir <DIR>` | Base output directory for exported files. Defaults to `extraction`. |
+| `--groupBy <FIELD>` | Group sets into a single file by `year`, `month`, or `setType`. |
 | `--fromDate <YYYY-MM-DD>` | Export only sets released on or after this date (use with `--all`). |
 | `--toDate <YYYY-MM-DD>` | Export only sets released on or before this date (use with `--all`). |
 | `--fromSet <CODE>` | Export only sets released on or after this set's release date (use with `--all`). |
