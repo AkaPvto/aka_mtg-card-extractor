@@ -56,7 +56,9 @@ auto exportSet(const std::string &setCode, const std::string &outputDir,
       fileName = type + "_cards.md";
     }
 
-    std::string outPath = outputDir.empty() || outputDir == "." ? fileName : outputDir + "/" + fileName;
+    std::string outPath = outputDir.empty() || outputDir == "."
+                              ? fileName
+                              : outputDir + "/" + fileName;
 
     {
       static std::mutex file_mutex;
@@ -73,8 +75,8 @@ auto exportSet(const std::string &setCode, const std::string &outputDir,
 
     std::lock_guard<std::mutex> lock(cout_mutex);
     std::cout << "Successfully exported " << result.exportedCount
-              << " cards to " << outPath << " (Skipped "
-              << result.skippedCount << ")\n";
+              << " cards to " << outPath << " (Skipped " << result.skippedCount
+              << ")\n";
 
   } catch (const json::parse_error &e) {
     std::lock_guard<std::mutex> lock(cout_mutex);
@@ -110,8 +112,8 @@ auto exportSets(const std::vector<std::string> &setCodes,
 auto exportAllSets(const std::string &outputDir, const std::string &targetType,
                    bool pruneEmpty, const std::string &fromDate,
                    const std::string &toDate, const std::string &fromSet,
-                   const std::string &toSet,
-                   const std::string &groupBy) -> void {
+                   const std::string &toSet, const std::string &groupBy)
+    -> void {
   std::cout << "Fetching SetList.json to determine all available sets...\n";
   std::string jsonString = fetchURL("https://mtgjson.com/api/v5/SetList.json");
   if (jsonString.empty()) {
