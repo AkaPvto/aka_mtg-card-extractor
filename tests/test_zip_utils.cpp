@@ -3,10 +3,10 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
-#include <filesystem>
-#include <fstream>
 #include <cstdio>
 #include <cstdlib>
+#include <filesystem>
+#include <fstream>
 #include <string>
 #include <vector>
 
@@ -73,9 +73,9 @@ TEST_F(ZipUtilsTest, ZipContainsNestedFile) {
   ASSERT_TRUE(createZipFromDirectory(sourceDir.string(), zipPath.string()));
   std::string dirName = sourceDir.filename().string();
   const auto entries = listZipEntries(zipPath);
-  EXPECT_NE(std::find(entries.begin(), entries.end(),
-                      dirName + "/subdir/nested.md"),
-            entries.end());
+  EXPECT_NE(
+      std::find(entries.begin(), entries.end(), dirName + "/subdir/nested.md"),
+      entries.end());
 }
 
 TEST_F(ZipUtilsTest, ZipContainsTopLevelFiles) {
