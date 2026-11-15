@@ -1,8 +1,11 @@
 #include "zip_utils.hpp"
 
+#include <cerrno>
 #include <filesystem>
 #include <iostream>
-#include <zip.h>
+#include <string>
+#include <sys/wait.h>
+#include <unistd.h>
 
 namespace fs = std::filesystem;
 
@@ -13,46 +16,53 @@ auto createZipFromDirectory(const std::string &sourceDir,
     return false;
   }
 
-  int err = 0;
-  zip_t *archive = zip_open(zipPath.c_str(), ZIP_CREATE | ZIP_TRUNCATE, &err);
-  if (!archive) {
-    zip_error_t zerr;
-    zip_error_init_with_code(&zerr, err);
-    std::cerr << "Failed to create zip archive: " << zip_error_strerror(&zerr)
-              << "\n";
-    zip_error_fini(&zerr);
+  const fs::path absoluteSource = fs::absolute(sourceDir).lexically_normal();
+  const fs::path absoluteZip = fs::absolute(zipPath).lexically_normal();
+  const fs::path basePath = absoluteSource.parent_path();
+  const std::string sourceName = "./" + absoluteSource.filename().string();
+
+  bool hasFiles = false;
+  for (const auto &entry : fs::recursive_directory_iterator(absoluteSource)) {
+    if (entry.is_regular_file()) {
+      hasFiles = true;
+      break;
+    }
+  }
+
+  std::error_code removeError;
+  fs::remove(absoluteZip, removeError);
+  if (removeError) {
+    std::cerr << "Failed to replace zip archive: " << absoluteZip << "\n";
+    return false;
+  }
+  if (!hasFiles)
+    return true;
+
+  const pid_t child = fork();
+  if (child < 0) {
+    std::cerr << "Failed to start zip process\n";
     return false;
   }
 
-  fs::path basePath = fs::path(sourceDir).parent_path();
+  if (child == 0) {
+    if (chdir(basePath.c_str()) != 0) {
+      std::cerr << "Failed to access source directory parent\n";
+      _exit(126);
+    }
 
-  for (const auto &entry : fs::recursive_directory_iterator(sourceDir)) {
-    if (!entry.is_regular_file())
+    execlp("zip", "zip", "-r", "-q", "-D", absoluteZip.c_str(),
+           sourceName.c_str(), static_cast<char *>(nullptr));
+    std::cerr << "Failed to execute zip\n";
+    _exit(127);
+  }
+
+  int status = 0;
+  while (waitpid(child, &status, 0) < 0) {
+    if (errno == EINTR)
       continue;
-
-    std::string absolutePath = entry.path().string();
-    std::string relativePath = fs::relative(entry.path(), basePath).string();
-
-    zip_source_t *source = zip_source_file(archive, absolutePath.c_str(), 0, 0);
-    if (!source) {
-      std::cerr << "Failed to create source for: " << absolutePath << "\n";
-      zip_discard(archive);
-      return false;
-    }
-
-    if (zip_file_add(archive, relativePath.c_str(), source, ZIP_FL_OVERWRITE) <
-        0) {
-      std::cerr << "Failed to add to zip: " << relativePath << "\n";
-      zip_source_free(source);
-      zip_discard(archive);
-      return false;
-    }
-  }
-
-  if (zip_close(archive) != 0) {
-    std::cerr << "Failed to finalize zip archive\n";
+    std::cerr << "Failed waiting for zip process\n";
     return false;
   }
 
-  return true;
+  return WIFEXITED(status) && WEXITSTATUS(status) == 0;
 }

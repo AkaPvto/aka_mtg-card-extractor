@@ -17,7 +17,7 @@ To build the project you will need:
 - A compiler with **C++17** support (e.g. `g++` or `clang++`).
 - **CMake** (version 3.14 or higher).
 - **libcurl** (e.g. the `libcurl4-openssl-dev` package on Ubuntu/Debian).
-- **libzip** (e.g. the `libzip-dev` package on Ubuntu/Debian).
+- **zip** command-line utility for the `--zip` option.
 
 *(Note: The `nlohmann/json.hpp` parsing library is already bundled in the source tree under `third_party/` for convenience.)*
 

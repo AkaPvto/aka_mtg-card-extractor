@@ -2,9 +2,13 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
+#include <cstdio>
+#include <cstdlib>
 #include <filesystem>
 #include <fstream>
-#include <zip.h>
+#include <string>
+#include <vector>
 
 namespace fs = std::filesystem;
 
@@ -27,24 +31,30 @@ protected:
     fs::remove(zipPath);
   }
 
-  auto countZipEntries(const fs::path &path) -> zip_int64_t {
-    int err = 0;
-    zip_t *archive = zip_open(path.string().c_str(), ZIP_RDONLY, &err);
-    if (!archive)
-      return -1;
-    zip_int64_t count = zip_get_num_entries(archive, 0);
-    zip_close(archive);
-    return count;
+  auto shellQuote(const std::string &value) -> std::string {
+    std::string result = "'";
+    for (char ch : value) {
+      if (ch == '\'')
+        result += "'\\''";
+      else
+        result += ch;
+    }
+    return result + "'";
   }
 
-  auto zipContainsFile(const fs::path &path, const std::string &name) -> bool {
-    int err = 0;
-    zip_t *archive = zip_open(path.string().c_str(), ZIP_RDONLY, &err);
-    if (!archive)
-      return false;
-    bool found = zip_name_locate(archive, name.c_str(), 0) >= 0;
-    zip_close(archive);
-    return found;
+  auto listZipEntries(const fs::path &path) -> std::vector<std::string> {
+    const fs::path listingPath = path.string() + ".entries";
+    const std::string command = "unzip -Z1 " + shellQuote(path.string()) +
+                                " > " + shellQuote(listingPath.string());
+    if (std::system(command.c_str()) != 0)
+      return {};
+
+    std::vector<std::string> entries;
+    std::ifstream listing(listingPath);
+    for (std::string entry; std::getline(listing, entry);)
+      entries.push_back(entry);
+    fs::remove(listingPath);
+    return entries;
   }
 };
 
@@ -56,20 +66,26 @@ TEST_F(ZipUtilsTest, CreatesZipFile) {
 TEST_F(ZipUtilsTest, ZipContainsExpectedNumberOfFiles) {
   ASSERT_TRUE(createZipFromDirectory(sourceDir.string(), zipPath.string()));
   // file1.md + file2.md + subdir/nested.md = 3 entries
-  EXPECT_EQ(countZipEntries(zipPath), 3);
+  EXPECT_EQ(listZipEntries(zipPath).size(), 3);
 }
 
 TEST_F(ZipUtilsTest, ZipContainsNestedFile) {
   ASSERT_TRUE(createZipFromDirectory(sourceDir.string(), zipPath.string()));
   std::string dirName = sourceDir.filename().string();
-  EXPECT_TRUE(zipContainsFile(zipPath, dirName + "/subdir/nested.md"));
+  const auto entries = listZipEntries(zipPath);
+  EXPECT_NE(
+      std::find(entries.begin(), entries.end(), dirName + "/subdir/nested.md"),
+      entries.end());
 }
 
 TEST_F(ZipUtilsTest, ZipContainsTopLevelFiles) {
   ASSERT_TRUE(createZipFromDirectory(sourceDir.string(), zipPath.string()));
   std::string dirName = sourceDir.filename().string();
-  EXPECT_TRUE(zipContainsFile(zipPath, dirName + "/file1.md"));
-  EXPECT_TRUE(zipContainsFile(zipPath, dirName + "/file2.md"));
+  const auto entries = listZipEntries(zipPath);
+  EXPECT_NE(std::find(entries.begin(), entries.end(), dirName + "/file1.md"),
+            entries.end());
+  EXPECT_NE(std::find(entries.begin(), entries.end(), dirName + "/file2.md"),
+            entries.end());
 }
 
 TEST_F(ZipUtilsTest, InvalidSourceDirectoryReturnsFalse) {
@@ -79,9 +95,6 @@ TEST_F(ZipUtilsTest, InvalidSourceDirectoryReturnsFalse) {
 }
 
 TEST_F(ZipUtilsTest, EmptyDirectorySucceedsWithoutCreatingFile) {
-  // libzip removes the zip file when no entries are added — this is documented
-  // behavior. We verify the call succeeds (no error) without asserting the file
-  // exists.
   fs::path emptyDir = fs::temp_directory_path() / "mtg_zip_empty";
   fs::path emptyZip = fs::temp_directory_path() / "mtg_zip_empty.zip";
   fs::create_directories(emptyDir);
