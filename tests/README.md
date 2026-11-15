@@ -2,7 +2,9 @@
 
 ## Running the tests
 
-From the project root using a preset (`debug-clang` or `devel-clang`):
+The ZIP utility tests use the `unzip` command-line utility.
+
+From the project root using a preset (`debug-clang`, `devel-clang`, `debug-gcc`, or `devel-gcc`):
 
 ```bash
 cmake --preset debug-clang          # configure (first time / after CMakeLists changes)

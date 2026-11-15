@@ -19,6 +19,25 @@
         "CMAKE_BUILD_TYPE": "Release",
         "CMAKE_CXX_COMPILER": "clang++"
       }
+    },
+    {
+      "name": "debug-gcc",
+      "displayName": "Debug (GCC)",
+      "binaryDir": "${sourceDir}/build/debug-gcc",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_CXX_COMPILER": "g++",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+      }
+    },
+    {
+      "name": "devel-gcc",
+      "displayName": "Devel (GCC)",
+      "binaryDir": "${sourceDir}/build/devel-gcc",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_CXX_COMPILER": "g++"
+      }
     }
   ],
   "buildPresets": [
@@ -29,6 +48,14 @@
     {
       "name": "devel-clang",
       "configurePreset": "devel-clang"
+    },
+    {
+      "name": "debug-gcc",
+      "configurePreset": "debug-gcc"
+    },
+    {
+      "name": "devel-gcc",
+      "configurePreset": "devel-gcc"
     }
   ],
   "testPresets": [
@@ -42,6 +69,20 @@
     {
       "name": "devel-clang",
       "configurePreset": "devel-clang",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "debug-gcc",
+      "configurePreset": "debug-gcc",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "devel-gcc",
+      "configurePreset": "devel-gcc",
       "output": {
         "outputOnFailure": true
       }
